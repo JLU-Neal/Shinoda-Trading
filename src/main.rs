@@ -14,6 +14,7 @@ use crate::data::load_bars_from_csv;
 use crate::strategy::Strategy;
 use crate::strategies::momentum::MomentumStrategy;
 use crate::strategies::mean_reversion::MeanReversionStrategy;
+use crate::strategies::mean_reversion_zscore::MeanReversionZScoreStrategy;
 use crate::backtest::run_backtest;
 use crate::fetcher::{fetch_bars_from_alpha_vantage, save_bars_to_csv};
 
@@ -74,6 +75,14 @@ struct BacktestArgs {
     /// Sell threshold for mean reversion strategy (default: 1.05)
     #[arg(long, default_value_t = 1.05)]
     sell_threshold: f64,
+
+    /// Entry z-score threshold for mean_reversion_zscore strategy (default: 2.0)
+    #[arg(long, default_value_t = 2.0)]
+    entry_z: f64,
+
+    /// Exit z-score threshold for mean_reversion_zscore strategy (default: 0.5)
+    #[arg(long, default_value_t = 0.5)]
+    exit_z: f64,
 }
 
 #[derive(Parser)]
@@ -111,8 +120,16 @@ fn build_strategy(args: &BacktestArgs) -> Result<Box<dyn Strategy>, String> {
             args.buy_threshold,
             args.sell_threshold,
         ))),
+        "mean_reversion_zscore" => {
+            let strategy = MeanReversionZScoreStrategy::new(
+                args.window,
+                args.entry_z,
+                args.exit_z,
+            ).map_err(|e| format!("Invalid mean_reversion_zscore parameters: {}", e))?;
+            Ok(Box::new(strategy))
+        }
         other => Err(format!(
-            "Unknown strategy '{}'. Supported strategies: momentum, mean_reversion",
+            "Unknown strategy '{}'. Supported strategies: momentum, mean_reversion, mean_reversion_zscore",
             other
         )),
     }
